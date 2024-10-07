@@ -156,7 +156,7 @@ export default function Home() {
 
     if (canvas) {
       const response = await axios.post(
-        "https://ai-calculator-backend-4353nxh5p-ayush-bhardwaj05s-projects.vercel.app",
+        "https://ai-calculator-be.vercel.app/?vercelToolbarCode=_G1ml0KmiSzAsE0",
         {
           image: canvas.toDataURL("image/png"),
           dict_of_vars: dictOfVars,
