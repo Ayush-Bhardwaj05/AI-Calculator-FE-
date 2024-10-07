@@ -116,40 +116,37 @@ export default function Home() {
       canvas.style.background = "black";
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        if (isErasing) {
-          ctx.lineWidth = eraserSize;
-          ctx.globalCompositeOperation = "destination-out";
-        } else {
-          ctx.lineWidth = pencilThickness;
-          ctx.globalCompositeOperation = "source-over";
-        }
+        ctx.lineWidth = isErasing ? eraserSize : pencilThickness;
+        ctx.globalCompositeOperation = isErasing
+          ? "destination-out"
+          : "source-over";
         ctx.beginPath();
         ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
         setIsDrawing(true);
       }
     }
   };
+
   const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!isDrawing) {
       return;
     }
+
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        if (isErasing) {
-          ctx.lineWidth = eraserSize;
-          ctx.globalCompositeOperation = "destination-out"; // Set to erase
-        } else {
-          ctx.strokeStyle = color;
-          ctx.lineWidth = pencilThickness;
-          ctx.globalCompositeOperation = "source-over";
-        }
+        ctx.lineWidth = isErasing ? eraserSize : pencilThickness;
+        ctx.globalCompositeOperation = isErasing
+          ? "destination-out"
+          : "source-over";
+        ctx.strokeStyle = isErasing ? "transparent" : color;
         ctx.lineTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
         ctx.stroke();
       }
     }
   };
+
   const stopDrawing = () => {
     setIsDrawing(false);
   };
@@ -158,25 +155,22 @@ export default function Home() {
     const canvas = canvasRef.current;
 
     if (canvas) {
-      const response = await axios({
-        method: "post",
-        url: `${import.meta.env.VITE_API_URL}/calculate`,
-        data: {
+      const response = await axios.post(
+        "https://ai-calculator-backend-4353nxh5p-ayush-bhardwaj05s-projects.vercel.app/calculate",
+        {
           image: canvas.toDataURL("image/png"),
           dict_of_vars: dictOfVars,
-        },
-      });
+        }
+      );
 
       const resp = await response.data;
       console.log("Response", resp);
       resp.data.forEach((data: Response) => {
-        if (data.assign === true) {
-          setDictOfVars({
-            ...dictOfVars,
-            [data.expr]: data.result,
-          });
+        if (data.assign) {
+          setDictOfVars({ ...dictOfVars, [data.expr]: data.result });
         }
       });
+
       const ctx = canvas.getContext("2d");
       const imageData = ctx!.getImageData(0, 0, canvas.width, canvas.height);
       let minX = canvas.width,
@@ -215,10 +209,11 @@ export default function Home() {
     <>
       <div className="grid grid-cols-3 gap-2">
         <Button
+          title="reset the canvas"
           onClick={() => setReset(true)}
           className="z-20 bg-red-500 hover:bg-red-500 transition-opacity duration-200 text-white"
           variant="default"
-          color="black"
+          color="red"
         >
           Reset
         </Button>
@@ -232,6 +227,7 @@ export default function Home() {
           ))}
         </Group>
         <Button
+          title="calculate"
           onClick={runRoute}
           className="z-20 bg-green-400 hover:bg-green-300 transition-opacity duration-200 text-white"
           variant="default"
@@ -241,26 +237,21 @@ export default function Home() {
         </Button>
       </div>
       <div className="absolute bottom-10 left-10 z-20 w-60">
-        {isErasing ? (
-          <Slider
-            label={`Eraser size: ${eraserSize}px`}
-            value={eraserSize}
-            onChange={setEraserSize}
-            min={5}
-            max={30}
-          />
-        ) : (
-          <Slider
-            label={`Pencil thickness: ${pencilThickness}px`}
-            value={pencilThickness}
-            onChange={setPencilThickness}
-            min={1}
-            max={10}
-          />
-        )}
+        <Slider
+          label={
+            isErasing
+              ? `Eraser size: ${eraserSize}px`
+              : `Pencil thickness: ${pencilThickness}px`
+          }
+          value={isErasing ? eraserSize : pencilThickness}
+          onChange={isErasing ? setEraserSize : setPencilThickness}
+          min={isErasing ? 5 : 1}
+          max={isErasing ? 30 : 10}
+        />
       </div>
       <div className="absolute bottom-16 left-10 z-20">
         <Button
+          title="pencil-or-eraser"
           onClick={() => setIsErasing(!isErasing)}
           className={`z-10 ${
             isErasing ? "bg-gray-500" : "bg-blue-500"
@@ -279,13 +270,12 @@ export default function Home() {
         onMouseUp={stopDrawing}
         onMouseOut={stopDrawing}
       />
-
       {latexExpression &&
         latexExpression.map((latex, index) => (
           <Draggable
             key={index}
             defaultPosition={latexPosition}
-            onStop={(_, data) => setLatexPosition({ x: data.x, y: data.y })}
+            onStop={(e, data) => setLatexPosition({ x: data.x, y: data.y })}
           >
             <div
               className="absolute p-2 text-white rounded shadow-md"
